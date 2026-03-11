@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚒️Обучающая модель для расчёта пористости горных пород 
+ · пористость</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+        body {
+            background: #e5ecf3;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .app-window {
+            width: 1400px;
+            max-width: 100%;
+            background: #ffffffdd;
+            backdrop-filter: blur(2px);
+            border-radius: 48px 48px 40px 40px;
+            box-shadow: 0 30px 60px rgba(10, 30, 50, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .app-header {
+            background: #0a3144;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            color: white;
+        }
+        .burger-icon {
+            font-size: 32px;
+            line-height: 1;
+            cursor: pointer;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1f4b66;
+            border-radius: 60px;
+            transition: 0.2s;
+            user-select: none;
+        }
+        .burger-icon:hover {
+            background: #2e6280;
+        }
+        .site-title {
+            font-size: 1.9rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            background: linear-gradient(130deg, #fff, #bddbff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header-sub {
+            margin-left: auto;
+            font-size: 1.2rem;
+            opacity: 0.9;
+            background: #1f4b66;
+            padding: 8px 24px;
+            border-radius: 40px;
+            font-weight: 500;
+        }
+        .main-layout {
+            display: flex;
+            min-height: 680px;
+            transition: 0.2s;
+        }
+        .side-menu {
+            width: 280px;
+            background: #f4f9ff;
+            border-right: 2px solid #b9d4ec;
+            padding: 28px 18px;
+            flex-shrink: 0;
+            transform: translateX(-100%);
+            display: none;
+            transition: 0.2s;
+            height: auto;
+        }
+        .side-menu.visible {
+            transform: translateX(0);
+            display: block;
+        }
+        .menu-item {
+            font-size: 1.4rem;
+            font-weight: 600;
+            padding: 20px 22px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 34px;
+            box-shadow: 0 5px 12px rgba(0,20,40,0.08);
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: 0.1s;
+            color: #0b374f;
+        }
+        .menu-item.active {
+            border-color: #2a7faa;
+            background: #ddecfa;
+        }
+        .menu-item:hover {
+            background: #cde2f5;
+        }
+        .content-panel {
+            flex: 1;
+            background: white;
+            padding: 30px 30px 30px 30px;
+            border-radius: 0 0 32px 0;
+            max-height: 800px;
+            overflow-y: auto;
+        }
+        .dictionary-block {
+            animation: fade 0.25s;
+        }
+        .dict-entry {
+            background: #f0f8ff;
+            padding: 28px 28px;
+            margin-bottom: 22px;
+            border-radius: 38px;
+            border-left: 12px solid #2a7faa;
+        }
+        .dict-term {
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: #0c3346;
+            margin-bottom: 12px;
+        }
+        .dict-def {
+            font-size: 1.16rem;
+            line-height: 1.5;
+            color: #1f4a60;
+            margin-bottom: 12px;
+        }
+        .dict-note {
+            background: #ffffffb8;
+            border-radius: 28px;
+            padding: 16px 22px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #004d73;
+        }
+        .selector-area {
+            background: #f1f9ff;
+            border-radius: 48px;
+            padding: 22px 28px;
+            margin-bottom: 28px;
+        }
+        .grid-field {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .grid-field label {
+            min-width: 320px;
+            font-weight: 600;
+            color: #1a4b64;
+            font-size: 1.05rem;
+        }
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 2 1 300px;
+        }
+        .input-wrapper select {
+            min-width: 300px;
+            padding: 12px 18px;
+            border: 2px solid #b9cee2;
+            border-radius: 40px;
+            font-size: 1rem;
+            background: white;
+        }
+        .input-wrapper input[type="number"] {
+            width: 160px;
+            padding: 10px 12px;
+            border: 2px solid #cbd6e3;
+            border-radius: 20px;
+            font-size: 1rem;
+        }
+        .unit-badge {
+            background: #e3ecf5;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #134b6b;
+            min-width: 80px;
+            text-align: center;
+        }
+        .density-preset {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: #d9e9f5;
+            padding: 12px 28px;
+            border-radius: 40px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .preset-value {
+            background: white;
+            border-radius: 32px;
+            padding: 8px 24px;
+            font-weight: 700;
+        }
+        .poro-box {
+            background: #f1f9ff;
+            border-radius: 40px;
+            padding: 24px 28px;
+            margin-top: 20px;
+        }
+        .result-area {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            flex-wrap: wrap;
+            background: white;
+            border-radius: 60px;
+            padding: 16px 28px;
+        }
+        .result-value {
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: #0a3142;
+        }
+        .history-box {
+            background: #eaf1f9;
+            border-radius: 34px;
+            padding: 18px 24px;
+            margin-top: 28px;
+            border: 2px dashed #8bb4d1;
+        }
+        .history-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #10455f;
+        }
+        #historyList {
+            list-style: none;
+            margin-top: 14px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        #historyList li {
+            background: white;
+            margin: 6px 0;
+            padding: 12px 22px;
+            border-radius: 30px;
+            border-left: 8px solid #628da0;
+        }
+        button {
+            background: #1d6f96;
+            color: white;
+            font-weight: 600;
+            padding: 12px 32px;
+            border-radius: 40px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            border: 2px solid white;
+        }
+        button:hover {
+            background: #135c80;
+        }
+        .summary-badge {
+            background: #ecf3fa;
+            border-radius: 32px;
+            padding: 14px 22px;
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            font-size: 0.95rem;
+        }
+        .formula-selector {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin: 20px 0 15px 0;
+            flex-wrap: wrap;
+            background: #e8f0f9;
+            padding: 14px 24px;
+            border-radius: 50px;
+        }
+        .formula-selector select {
+            min-width: 300px;
+            padding: 12px 20px;
+            border-radius: 40px;
+            border: 2px solid #9bb7d4;
+            background: white;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+<div class="app-window">
+    <div class="app-header">
+        <div class="burger-icon" id="menuToggle">☰</div>
+        <span class="site-title">⚒️ Обучающая модель для расчёта пористости горных пород 
+ · пористость</span>
+        <div class="header-sub">Маяковские</div>
+    </div>
+
+    <div class="main-layout">
+        <div class="side-menu" id="sideMenu">
+            <div class="menu-item active" data-page="calc" id="menuCalc">📐 Расчеты</div>
+            <div class="menu-item" data-page="dict" id="menuDict">📚 Словарь</div>
+        </div>
+        <div class="content-panel" id="contentPanel"></div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- 11 параметров ----------
+        const data = {
+            Mp: 20.5,                // Вес зерна в воздухе Mп (г)
+            Mnov: 22.8,              // Mн.о.в (г)
+            Mnozh: 12.4,             // Mн.о.ж (г)
+            Most: 21.0,              // Mост (г)
+            rzh: 1.00,               // плотность жидкости (г/см³)
+            rp: 2.65,                // плотность зерен/породы (г/см³)
+            rno: 2.20,               // плотность насыщенного образца (г/см³)
+            Vno: 10.2,               // объем насыщенного образца (см³)
+            Vsoobp: 2.1,             // объем сообщающихся пор (см³)
+            Vp_vse: 2.6,             // объем всех пор (см³)
+            Vp_zeren: 7.6            // объем минеральных зерен (см³)
+        };
+
+        let historyLog = [];
+
+        const menuToggle = document.getElementById('menuToggle');
+        const sideMenu = document.getElementById('sideMenu');
+        const menuCalc = document.getElementById('menuCalc');
+        const menuDict = document.getElementById('menuDict');
+        const contentPanel = document.getElementById('contentPanel');
+
+        menuToggle.addEventListener('click', () => sideMenu.classList.toggle('visible'));
+
+        // ---------- Функция рендера калькулятора ----------
+        function renderCalculator() {
+            const paramOptions = [
+                { value: 'Mp', label: '1. Вес зерна в воздухе Mп (г)' },
+                { value: 'Mnov', label: '2. Вес насыщенного образца в воздухе Mн.о.в (г)' },
+                { value: 'Mnozh', label: '3. Вес насыщенного образца в жидкости Mн.о.ж (г)' },
+                { value: 'Most', label: '4. Вес образца с остаточной жидкостью Mост (г)' },
+                { value: 'rzh', label: '5. Плотность жидкости рж (г/см³)' },
+                { value: 'rp', label: '6. Плотность минеральных зерен/породы рп (г/см³)' },
+                { value: 'rno', label: '7. Плотность насыщенного образца pн.о (г/см³)' },
+                { value: 'Vno', label: '8. Объем насыщенного образца Vн.о (см³)' },
+                { value: 'Vsoobp', label: '9. Объем сообщающихся пор Vсооб.п (см³)' },
+                { value: 'Vp_vse', label: '10. Объем пор (всех) Vп (см³)' },
+                { value: 'Vp_zeren', label: '11. Объем минеральных зерен Vп (см³)' }
+            ];
+
+            let optionsHtml = '';
+            paramOptions.forEach(opt => {
+                optionsHtml += `<option value="${opt.value}">${opt.label}</option>`;
+            });
+
+            // Группы формул для выбора (зависят от типа пористости, но пока сделаем статичные списки)
+            // Мы будем обновлять их динамически через JS
+            let html = `
+                <div class="calc-block">
+                    <div class="selector-area">
+                        <div class="grid-field">
+                            <label>🔹 Выберите параметр для ввода:</label>
+                            <div class="input-wrapper">
+                                <select id="paramSelect">${optionsHtml}</select>
+                                <input type="number" id="inputValue" step="any" value="20.0" placeholder="значение">
+                                <span class="unit-badge" id="unitDisplay">г</span>
+                            </div>
+                        </div>
+
+                        <!-- Пресет жидкости -->
+                        <div class="density-preset">
+                            <span>💧 Плотность жидкости (пресет):</span>
+                            <select id="liquidChoice">
+                                <option value="1.00" ${data.rzh === 1.00 ? 'selected' : ''}>Вода (1.00 г/см³)</option>
+                                <option value="0.82" ${data.rzh === 0.82 ? 'selected' : ''}>Керосин (0.82 г/см³)</option>
+                            </select>
+                            <span class="preset-value" id="selectedLiquidDisp">${data.rzh.toFixed(2)} г/см³</span>
+                        </div>
+                    </div>
+
+                    <!-- Сводка значений -->
+                    <div class="summary-badge">
+                        <span><strong>Mп:</strong> ${data.Mp.toFixed(2)} г</span>
+                        <span><strong>Mн.о.в:</strong> ${data.Mnov.toFixed(2)} г</span>
+                        <span><strong>Mн.о.ж:</strong> ${data.Mnozh.toFixed(2)} г</span>
+                        <span><strong>Mост:</strong> ${data.Most.toFixed(2)} г</span>
+                        <span><strong>рж:</strong> ${data.rzh.toFixed(2)} г/см³</span>
+                        <span><strong>рп:</strong> ${data.rp.toFixed(2)} г/см³</span>
+                        <span><strong>рн.о:</strong> ${data.rno.toFixed(2)} г/см³</span>
+                        <span><strong>Vн.о:</strong> ${data.Vno.toFixed(2)} см³</span>
+                        <span><strong>Vсооб.п:</strong> ${data.Vsoobp.toFixed(2)} см³</span>
+                        <span><strong>Vп(все):</strong> ${data.Vp_vse.toFixed(2)} см³</span>
+                        <span><strong>Vп(зерен):</strong> ${data.Vp_zeren.toFixed(2)} см³</span>
+                    </div>
+
+                    <!-- Выбор типа пористости и конкретной формулы -->
+                    <div style="display: flex; gap: 30px; align-items: center; flex-wrap: wrap; margin: 15px 0;">
+                        <div style="min-width: 200px;">
+                            <select id="calcSelect" style="width:100%; padding:14px; border-radius:40px; border:2px solid #b9cee2;">
+                                <option value="abs">Абсолютная пористость (m)</option>
+                                <option value="open">Открытая пористость (mо)</option>
+                                <option value="eff">Эффективная пористость (mэф)</option>
+                            </select>
+                        </div>
+                        <div style="flex:1; min-width: 350px;" class="formula-selector">
+                            <span style="font-weight:600;">Выберите формулу:</span>
+                            <select id="formulaSelect">
+                                <!-- заполняется динамически -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Кнопка вычисления -->
+                    <div style="display: flex; justify-content: center; margin: 20px 0;">
+                        <button id="calcBtn" style="font-size:1.3rem; padding:16px 48px;">🧮 ВЫЧИСЛИТЬ</button>
+                    </div>
+
+                    <!-- Результат (без названия формулы) -->
+                    <div class="result-area" style="justify-content:center;">
+                        <span class="result-value" id="resultNumber">0.000</span>
+                        <span class="unit-badge" id="resultUnit">%</span>
+                    </div>
+
+                    <!-- История -->
+                    <div class="history-box">
+                        <div class="history-title">📋 История расчетов</div>
+                        <ul id="historyList">
+                            ${historyLog.length ? historyLog.map(item => `<li>${item}</li>`).join('') : '<li style="background:#f4f9ff;">Пока нет вычислений</li>'}
+                        </ul>
+                        <button id="clearHistoryBtn" style="margin-top:12px; background:#4f6b7e; padding:6px 20px;">Очистить историю</button>
+                    </div>
+                </div>
+            `;
+            contentPanel.innerHTML = html;
+            initializeCalcHandlers();
+        }
+
+        // ---------- Инициализация всех обработчиков ----------
+        function initializeCalcHandlers() {
+            const paramSelect = document.getElementById('paramSelect');
+            const inputValue = document.getElementById('inputValue');
+            const unitDisplay = document.getElementById('unitDisplay');
+            const liquidChoice = document.getElementById('liquidChoice');
+            const selectedLiquidDisp = document.getElementById('selectedLiquidDisp');
+            const calcBtn = document.getElementById('calcBtn');
+            const calcSelect = document.getElementById('calcSelect');
+            const formulaSelect = document.getElementById('formulaSelect');
+            const resultNumber = document.getElementById('resultNumber');
+            const resultUnit = document.getElementById('resultUnit');
+            const historyList = document.getElementById('historyList');
+            const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+            // Словари формул для каждого типа пористости
+            const formulaLists = {
+                abs: [
+                    { value: 'abs1', label: 'ф.1: m = (рн.о - рп) / (рж - рп)' },
+                    { value: 'abs2', label: 'ф.2: m = Vпор / Vн.о' },
+                    { value: 'abs3', label: 'ф.3: m = (Mн.о/Vн.о - Mп/Vп)/(рж - Mп/Vп)' },
+                    { value: 'abs4', label: 'ф.4: m = (Mн.о/Vн.о - рп)/(рж - рп)' },
+                    { value: 'abs5', label: 'ф.5: m = (рн.о - Mп/Vп)/(рж - Mп/Vп)' },
+                    { value: 'abs6', label: 'ф.6: m = Vп / ((Mн.о.в - Mн.о.ж)/рж)' }
+                ],
+                open: [
+                    { value: 'open1', label: 'ф.1: mo = Vсооб.п / Vн.о' },
+                    { value: 'open2', label: 'ф.2: mo = (Mн.о.в - Mп) / (Mн.о.в - Mн.о.ж)' },
+                    { value: 'open3', label: 'ф.3: mo = Vсооб.п * рж / (Mн.о.в - Mн.о.ж)' },
+                    { value: 'open4', label: 'ф.4: mo = (Mн.о.в - Mп) / (Vн.о * рж)' },
+                    { value: 'open5', label: 'ф.5: mo = Vсооб.п * рн.о / Mн.о.в' }
+                ],
+                eff: [
+                    { value: 'eff1', label: 'ф.1: mэф = (Vсообщ - (Mост-Mп)/рж) / Vн.о' },
+                    { value: 'eff2', label: 'ф.2: mэф = (Mн.о.в-Mп) - (Mост-Mп)/(рж*Vн.о)' },
+                    { value: 'eff3', label: 'ф.3: mэф = ((Vн.о*рн.о - Vп*рп) - (Mост-Vп*рп))/(рж*Vн.о)' },
+                    { value: 'eff4', label: 'ф.4: mэф = (Vсообщ - (Mост-Mп)/рж) * рн.о / Mн.о.в' }
+                ]
+            };
+
+            // Функция обновления списка формул
+            function updateFormulaList() {
+                const type = calcSelect.value;
+                const list = formulaLists[type] || [];
+                formulaSelect.innerHTML = '';
+                list.forEach(f => {
+                    const option = document.createElement('option');
+                    option.value = f.value;
+                    option.textContent = f.label;
+                    formulaSelect.appendChild(option);
+                });
+            }
+            updateFormulaList();
+            calcSelect.addEventListener('change', updateFormulaList);
+
+            // Обновление единиц
+            function updateUnit() {
+                const param = paramSelect.value;
+                if (param.startsWith('r') || param.includes('rp') || param.includes('rzh') || param.includes('rno')) {
+                    unitDisplay.textContent = 'г/см³';
+                } else if (param.startsWith('V')) {
+                    unitDisplay.textContent = 'см³';
+                } else {
+                    unitDisplay.textContent = 'г';
+                }
+            }
+
+            function syncInputFromData() {
+                const param = paramSelect.value;
+                if (data.hasOwnProperty(param)) {
+                    inputValue.value = data[param].toFixed(3);
+                }
+                updateUnit();
+            }
+
+            function readInputToData() {
+                const param = paramSelect.value;
+                let val = parseFloat(inputValue.value);
+                if (isNaN(val)) val = 0;
+                data[param] = val;
+                if (param === 'rzh') {
+                    if (Math.abs(data.rzh - 1.0) < 0.01) liquidChoice.value = '1.00';
+                    else if (Math.abs(data.rzh - 0.82) < 0.01) liquidChoice.value = '0.80';
+                    selectedLiquidDisp.textContent = data.rzh.toFixed(2) + ' г/см³';
+                }
+                updateSummaryBadges();
+            }
+
+            function updateSummaryBadges() {
+                const spans = document.querySelectorAll('.summary-badge span');
+                if (spans.length >= 11) {
+                    spans[0].innerHTML = `<strong>Mп:</strong> ${data.Mp.toFixed(2)} г`;
+                    spans[1].innerHTML = `<strong>Mн.о.в:</strong> ${data.Mnov.toFixed(2)} г`;
+                    spans[2].innerHTML = `<strong>Mн.о.ж:</strong> ${data.Mnozh.toFixed(2)} г`;
+                    spans[3].innerHTML = `<strong>Mост:</strong> ${data.Most.toFixed(2)} г`;
+                    spans[4].innerHTML = `<strong>рж:</strong> ${data.rzh.toFixed(2)} г/см³`;
+                    spans[5].innerHTML = `<strong>рп:</strong> ${data.rp.toFixed(2)} г/см³`;
+                    spans[6].innerHTML = `<strong>рн.о:</strong> ${data.rno.toFixed(2)} г/см³`;
+                    spans[7].innerHTML = `<strong>Vн.о:</strong> ${data.Vno.toFixed(2)} см³`;
+                    spans[8].innerHTML = `<strong>Vсооб.п:</strong> ${data.Vsoobp.toFixed(2)} см³`;
+                    spans[9].innerHTML = `<strong>Vп(все):</strong> ${data.Vp_vse.toFixed(2)} см³`;
+                    spans[10].innerHTML = `<strong>Vп(зерен):</strong> ${data.Vp_zeren.toFixed(2)} см³`;
+                }
+            }
+
+            paramSelect.addEventListener('change', syncInputFromData);
+            inputValue.addEventListener('input', readInputToData);
+
+            liquidChoice.addEventListener('change', function() {
+                data.rzh = parseFloat(liquidChoice.value);
+                selectedLiquidDisp.textContent = data.rzh.toFixed(2) + ' г/см³';
+                if (paramSelect.value === 'rzh') inputValue.value = data.rzh.toFixed(3);
+                updateSummaryBadges();
+            });
+
+            // ---------- РАСЧЕТ ПО ВЫБРАННОЙ ФОРМУЛЕ ----------
+            function calculate() {
+                const type = calcSelect.value;
+                const formula = formulaSelect.value; // например 'abs1', 'open3' и т.д.
+                let porosity = 0;
+                let formulaLabel = '';
+
+                // Найдем метку формулы
+                const list = formulaLists[type] || [];
+                const found = list.find(f => f.value === formula);
+                formulaLabel = found ? found.label : formula;
+
+                // --- вычисляем в зависимости от formula ---
+                if (formula === 'abs1') {
+                    if (data.rno && data.rp && data.rzh && data.rzh !== data.rp)
+                        porosity = (data.rno - data.rp) / (data.rzh - data.rp);
+                } else if (formula === 'abs2') {
+                    if (data.Vp_vse && data.Vno && data.Vno !== 0)
+                        porosity = data.Vp_vse / data.Vno;
+                } else if (formula === 'abs3') {
+                    if (data.Mnov && data.Vno && data.Mp && data.Vp_zeren && data.rzh && data.Vp_zeren !== 0) {
+                        let term1 = data.Mnov/data.Vno - data.Mp/data.Vp_zeren;
+                        let term2 = data.rzh - data.Mp/data.Vp_zeren;
+                        if (term2 !== 0) porosity = term1 / term2;
+                    }
+                } else if (formula === 'abs4') {
+                    if (data.Mnov && data.Vno && data.rp && data.rzh && data.rzh !== data.rp)
+                        porosity = (data.Mnov/data.Vno - data.rp) / (data.rzh - data.rp);
+                } else if (formula === 'abs5') {
+                    if (data.rno && data.Mp && data.Vp_zeren && data.rzh && data.Vp_zeren !== 0) {
+                        let denom = data.rzh - data.Mp/data.Vp_zeren;
+                        if (denom !== 0) porosity = (data.rno - data.Mp/data.Vp_zeren) / denom;
+                    }
+                } else if (formula === 'abs6') {
+                    if (data.Vp_vse && data.Mnov && data.Mnozh && data.rzh && (data.Mnov - data.Mnozh) !== 0) {
+                        let denom = (data.Mnov - data.Mnozh) / data.rzh;
+                        if (denom !== 0) porosity = data.Vp_vse / denom;
+                    }
+                } else if (formula === 'open1') {
+                    if (data.Vsoobp && data.Vno && data.Vno !== 0) porosity = data.Vsoobp / data.Vno;
+                } else if (formula === 'open2') {
+                    if (data.Mnov && data.Mp && data.Mnozh && (data.Mnov - data.Mnozh) !== 0)
+                        porosity = (data.Mnov - data.Mp) / (data.Mnov - data.Mnozh);
+                } else if (formula === 'open3') {
+                    if (data.Vsoobp && data.rzh && data.Mnov && data.Mnozh && (data.Mnov - data.Mnozh) !== 0)
+                        porosity = (data.Vsoobp * data.rzh) / (data.Mnov - data.Mnozh);
+                } else if (formula === 'open4') {
+                    if (data.Mnov && data.Mp && data.Vno && data.rzh && data.Vno !== 0 && data.rzh !== 0)
+                        porosity = (data.Mnov - data.Mp) / (data.Vno * data.rzh);
+                } else if (formula === 'open5') {
+                    if (data.Vsoobp && data.rno && data.Mnov && data.Mnov !== 0)
+                        porosity = (data.Vsoobp * data.rno) / data.Mnov;
+                } else if (formula === 'eff1') {
+                    if (data.Vsoobp && data.Most && data.Mp && data.rzh && data.Vno && data.rzh !== 0 && data.Vno !== 0)
+                        porosity = (data.Vsoobp - (data.Most - data.Mp) / data.rzh) / data.Vno;
+                } else if (formula === 'eff2') {
+                    if (data.Mnov && data.Mp && data.Most && data.rzh && data.Vno && data.rzh !== 0 && data.Vno !== 0) {
+                        porosity = (data.Mnov - data.Mp) - (data.Most - data.Mp) / (data.rzh * data.Vno);
+                    }
+                } else if (formula === 'eff3') {
+                    if (data.Vno && data.rno && data.Vp_zeren && data.rp && data.Most && data.rzh && data.rzh !== 0 && data.Vno !== 0) {
+                        let term1 = data.Vno * data.rno - data.Vp_zeren * data.rp;
+                        let term2 = data.Most - data.Vp_zeren * data.rp;
+                        porosity = (term1 - term2) / (data.rzh * data.Vno);
+                    }
+                } else if (formula === 'eff4') {
+                    if (data.Vsoobp && data.Most && data.Mp && data.rzh && data.rno && data.Mnov && data.rzh !== 0 && data.Mnov !== 0) {
+                        porosity = (data.Vsoobp - (data.Most - data.Mp) / data.rzh) * data.rno / data.Mnov;
+                    }
+                }
+
+                // нормализация
+                if (typeof porosity === 'number' && isFinite(porosity)) {
+                    porosity = porosity * 100;
+                    if (porosity < 0) porosity = 0;
+                    resultNumber.textContent = porosity.toFixed(3);
+                } else {
+                    resultNumber.textContent = '???';
+                    porosity = 0;
+                }
+                resultUnit.textContent = '%';
+
+                // запись в историю
+                const typeName = calcSelect.options[calcSelect.selectedIndex].text;
+                historyLog.unshift(`${typeName} = ${porosity.toFixed(3)}% (${formulaLabel})`);
+                if (historyLog.length > 8) historyLog.pop();
+                renderHistoryList();
+            }
+
+            function renderHistoryList() {
+                if (historyList) {
+                    historyList.innerHTML = historyLog.length 
+                        ? historyLog.map(item => `<li>${item}</li>`).join('')
+                        : '<li style="background:#f4f9ff;">Пока нет вычислений</li>';
+                }
+            }
+
+            calcBtn.addEventListener('click', calculate);
+            clearHistoryBtn.addEventListener('click', () => {
+                historyLog = [];
+                renderHistoryList();
+            });
+
+            // инициализация
+            syncInputFromData();
+            updateSummaryBadges();
+        }
+
+        function renderDictionary() {
+            contentPanel.innerHTML = `
+                <div class="dictionary-block">
+                    <div class="dict-entry"><div class="dict-term">Абсолютная пористость</div><div class="dict-def">Численно пористость выражается коэффициентом общей (полной, абсолютной) пористости (m), который показывает, какую долю от общего объема породы занимают эти пустоты.</div></div>
+                    <div class="dict-entry"><div class="dict-term">Открытая пористость</div><div class="dict-def">Коэффициент открытой пористости (mо) зависит от объёма только тех пор, которые сообщаются между собой и с поверхностью образца. По ним флюид теоретически может двигаться.</div></div>
+                    <div class="dict-entry"><div class="dict-term">Эффективная пористость</div><div class="dict-def">Коэффициент эффективной пористости (mэф.) оценивает фильтрацию в породе жидкости или газа, включает часть открытой пористости, по которой флюид действительно движется при существующих перепадах давления.</div></div>
+                    <div class="dict-entry"><div class="dict-term">Закрытая пористость</div><div class="dict-def">Закрытая пористость — совокупность замкнутых, взаимно не сообщающихся пор.</div></div>
+                    <div class="dict-note">📐 Для коэффициентов пористости всегда выполняется соотношение: <strong>mп > mo > mэф.</strong></div>
+                </div>
+            `;
+        }
+
+        function setActivePage(page) {
+            menuCalc.classList.toggle('active', page === 'calc');
+            menuDict.classList.toggle('active', page === 'dict');
+            if (page === 'calc') renderCalculator();
+            else renderDictionary();
+            sideMenu.classList.remove('visible');
+        }
+
+        menuCalc.addEventListener('click', () => setActivePage('calc'));
+        menuDict.addEventListener('click', () => setActivePage('dict'));
+
+        setActivePage('calc');
+    })();
+</script>
+</body>
+</html>
